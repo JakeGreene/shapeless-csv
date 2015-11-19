@@ -27,3 +27,34 @@ scala> val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
 <console>:15: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[List[Person]]
        val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
 ```
+
+Future Development
+------------------
+
+1. CSV can be parsed into nested case classes
+```
+scala> case class Address(number: Int, street: String)
+defined class Address
+
+scala> case class Person(name: String, age: Int, home: Address)
+defined class Person
+
+// Current Behaviour
+scala> val pm = Parser[Person]("Sir John A. Macdonald,42,24,Sussex Drive")
+pm: Option[Person] = None
+
+// Ideal Behaviour
+scala> val pm = Parser[Person]("Sir John A. Macdonald,42,24,Sussex Drive")
+pm: Option[Person] = Some(Person(Sir John A. Macdonald,42,Address(24,Sussex Drive)))
+```
+2. CSV can be parsed into a collection of case classes.
+```
+// Current Behaviour
+scala> val people = Parser[List[Person]]("Jake Greene,26")
+<console>:15: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[List[Person]]
+       val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
+
+// Ideal Behaviour
+scala> val people = Parser[List[Person]]("Jake Greene,26")
+people: Option[List[Person]] = Some(List(Person(Jake Greene,26)))
+```
