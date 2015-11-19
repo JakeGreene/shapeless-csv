@@ -1,5 +1,6 @@
 bin/
 target/
 .cache-main
+.cache-tests
 .classpath
 .project
