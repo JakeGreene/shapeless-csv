@@ -31,7 +31,7 @@ scala> val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
 Future Development
 ------------------
 
-1. CSV can be parsed into nested case classes
+* CSV can be parsed into nested case classes
 ```
 scala> case class Address(number: Int, street: String)
 defined class Address
@@ -47,7 +47,7 @@ pm: Option[Person] = None
 scala> val pm = Parser[Person]("Sir John A. Macdonald,42,24,Sussex Drive")
 pm: Option[Person] = Some(Person(Sir John A. Macdonald,42,Address(24,Sussex Drive)))
 ```
-2. CSV can be parsed into a collection of case classes.
+* CSV can be parsed into a collection of case classes.
 ```
 // Current Behaviour
 scala> val people = Parser[List[Person]]("Jake Greene,26")
