@@ -8,27 +8,7 @@ Original idea and code from Travis Brown's http://meta.plasm.us/posts/2015/11/08
 Usage
 -----
 
-Able to parse CSV strings into case classes without the need for boilerplate.
-
-```
-scala> import ca.jakegreene.csv._
-import ca.jakegreene.csv._
-
-scala> case class Person(name: String, age: Int)
-defined class Person
-
-scala> val jake = Parser[Person]("Jake Greene,26")
-jake: Option[Person] = Some(Person(Jake Greene,26))
-
-scala> val runtimeTypeCheck = Parser[Person]("Jake Greene,apple")
-runtimeTypeCheck: Option[Person] = None
-
-scala> val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
-<console>:15: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[List[Person]]
-       val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
-```
-
-Supports nested case classes
+Able to parse CSV strings into case classes without the need for boilerplate. Supports nested case classes.
 
 ```
 scala> import ca.jakegreene.csv._
@@ -40,8 +20,15 @@ defined class Address
 scala> case class Person(name: String, age: Int, home: Address)
 defined class Person
 
-scala> Parser.parse[Person]("Jake Greene,26,0,Madeup St.")
-res0: Either[String,Person] = Right(Person(Jake Greene,26,Address(0,Madeup St.)))
+scala> val jake = Parser.parse[Person]("Jake Greene,26,0,Madeup St.")
+jake: Either[String,Person] = Right(Person(Jake Greene,26,Address(0,Madeup St.)))
+
+scala> val runtimeCheck = Parser.parse[Person]("Jake Greene,26,true,Madeup St.")
+runtimeCheck: Either[String,Person] = Left(Cannot parse [true] to Int)
+
+scala> val compiletimeCheck = Parser.parse[List[Person]]("Jake Greene,26,0,Madeup St.")
+<console>:17: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[List[Person]]
+       val compiletimeCheck = Parser.parse[List[Person]]("Jake Greene,26,0,Madeup St.")
 ```
 
 Future Development
