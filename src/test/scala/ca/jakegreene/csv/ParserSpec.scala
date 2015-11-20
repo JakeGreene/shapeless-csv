@@ -17,12 +17,12 @@ class ParserSpec extends WordSpec with Matchers with OptionValues {
       maybeCaseClass.value.d should equal (3.14)
     }
     
-    "fail to parse case class when incorrect number of arguments" in {
+    "fail to parse case class when given incorrect number of arguments" in {
       val maybeCaseClass = Parser.parse[Test]("hello world,12345")
       maybeCaseClass should be (None)
     }
     
-    "fail to parse case class when incorrect types" in {
+    "fail to parse case class when given incorrect types" in {
       val maybeCaseClass = Parser.parse[Test]("hello,12345,world")
       maybeCaseClass should be (None)
     }
@@ -47,9 +47,33 @@ class ParserSpec extends WordSpec with Matchers with OptionValues {
     }
     
     "parse if given an implicit" in {
-      implicit val longParser = Parser.instance(s => Try(s.toLong).toOption)
+      implicit val longParser = Parser.headInstance(s => Try(s.toLong).toOption)
       val maybeLong = Parser.parse[Long]("1234567890")
       maybeLong.value should equal (1234567890)
+    }
+    
+    "parse nested case classes" in {
+      case class Holder(t: Test)
+      val maybeHolder = Parser.parse[Holder]("hello world,54321,3.14")
+      maybeHolder.value should equal (Holder(Test("hello world", 54321, 3.14)))
+    }
+    
+    "parse padded nested case class with header" in {
+      case class Holder(header: Int, t: Test)
+      val maybeHolder = Parser.parse[Holder]("3,hello world,54321,3.14")
+      maybeHolder.value should equal (Holder(3, Test("hello world", 54321, 3.14)))
+    }
+    
+    "parse padded nested case class with footer" in {
+      case class Holder(t: Test, footer: Int)
+      val maybeHolder = Parser.parse[Holder]("hello world,54321,3.14,3")
+      maybeHolder.value should equal (Holder(Test("hello world", 54321, 3.14), 3))
+    }
+    
+    "parse padded nested case class with header/footer" in {
+      case class Holder(header: Int, t: Test, footer: Int)
+      val maybeHolder = Parser.parse[Holder]("4,hello world,54321,3.14,3")
+      maybeHolder.value should equal (Holder(4, Test("hello world", 54321, 3.14), 3))
     }
   }
 }
