@@ -8,7 +8,7 @@ Original idea and code from Travis Brown's http://meta.plasm.us/posts/2015/11/08
 Usage
 -----
 
-Able to parse CSV strings into "flat" case classes without the need for boilerplate.
+Able to parse CSV strings into case classes without the need for boilerplate.
 
 ```
 scala> import ca.jakegreene.csv._
@@ -28,25 +28,25 @@ scala> val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
        val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
 ```
 
-Future Development
-------------------
+Supports nested case classes
 
-* CSV can be parsed into nested case classes
 ```
+scala> import ca.jakegreene.csv._
+import ca.jakegreene.csv._
+
 scala> case class Address(number: Int, street: String)
 defined class Address
 
 scala> case class Person(name: String, age: Int, home: Address)
 defined class Person
 
-// Current Behaviour
-scala> val pm = Parser[Person]("Sir John A. Macdonald,42,24,Sussex Drive")
-pm: Option[Person] = None
-
-// Ideal Behaviour
-scala> val pm = Parser[Person]("Sir John A. Macdonald,42,24,Sussex Drive")
-pm: Option[Person] = Some(Person(Sir John A. Macdonald,42,Address(24,Sussex Drive)))
+scala> Parser.parse[Person]("Jake Greene,26,0,Madeup St.")
+res0: Either[String,Person] = Right(Person(Jake Greene,26,Address(0,Madeup St.)))
 ```
+
+Future Development
+------------------
+
 * CSV can be parsed into a collection of case classes.
 ```
 // Current Behaviour
