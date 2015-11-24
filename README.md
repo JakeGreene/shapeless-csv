@@ -10,38 +10,27 @@ Usage
 
 Able to parse CSV strings into case classes without the need for boilerplate. Supports nested case classes.
 
-```
-scala> import ca.jakegreene.csv._
+```scala
 import ca.jakegreene.csv._
 
-scala> case class Address(number: Int, street: String)
-defined class Address
+case class Address(number: Int, street: String)
+case class Person(name: String, age: Int, home: Address)
 
-scala> case class Person(name: String, age: Int, home: Address)
-defined class Person
+val csv = "Jake Greene,26,0,Madeup St.\nJG,26,10,Somewhere Road"
+val jakes = CsvParser.parse[Person](csv)
+/*
+ * List(Right(Person(Jake Greene,26,Address(0,Madeup St.))),
+ *      Right(Person(JG,26,Address(10,Somewhere Road))))
+ */
+println(jakes) 
 
-scala> val jake = Parser.parse[Person]("Jake Greene,26,0,Madeup St.")
-jake: Either[String,Person] = Right(Person(Jake Greene,26,Address(0,Madeup St.)))
+val runtimeCheck = Parser.parse[Person]("Jake Greene,26,true,Madeup St.")
+// List(Left(Cannot parse [true] to Int))
+println(runtimeCheck) 
 
-scala> val runtimeCheck = Parser.parse[Person]("Jake Greene,26,true,Madeup St.")
-runtimeCheck: Either[String,Person] = Left(Cannot parse [true] to Int)
-
-scala> val compiletimeCheck = Parser.parse[List[Person]]("Jake Greene,26,0,Madeup St.")
-<console>:17: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[List[Person]]
-       val compiletimeCheck = Parser.parse[List[Person]]("Jake Greene,26,0,Madeup St.")
-```
-
-Future Development
-------------------
-
-* CSV can be parsed into a collection of case classes.
-```
-// Current Behaviour
-scala> val people = Parser[List[Person]]("Jake Greene,26")
-<console>:15: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[List[Person]]
-       val compiletimeTypeCheck = Parser[List[Person]]("Jake Greene,26")
-
-// Ideal Behaviour
-scala> val people = Parser[List[Person]]("Jake Greene,26")
-people: Option[List[Person]] = Some(List(Person(Jake Greene,26)))
+trait Invalid
+/* <console>:17: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[Invalid]
+ *     val compiletimeCheck = Parser.parse[Invalid]("Jake Greene,26,0,Madeup St.")
+ */
+val compiletimeCheck = Parser.parse[Invalid]("Jake Greene,26,0,Madeup St.")
 ```

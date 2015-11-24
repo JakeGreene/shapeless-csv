@@ -15,9 +15,9 @@ object CsvParser {
   type ParseResult[T] = Either[String, T]
 
   def parse[T](s: String)(implicit parser: CsvParser[T]): Seq[ParseResult[T]] = {
-    val lines = s.split("\n").toSeq
+    val lines = s.split("\n").toList
     lines.map { line =>
-      val cells = line.split(",").toSeq
+      val cells = line.split(",").toList
       parser(cells)
     }
   }
