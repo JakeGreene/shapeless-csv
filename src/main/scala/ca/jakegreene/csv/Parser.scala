@@ -8,16 +8,16 @@ trait Parser[T] {
   def size: Int
 }
 
-/**
- * Original code is based on Travis Brown's work.
- */
 object Parser {
-  
+
   type ParseResult[T] = Either[String, T]
 
-  def parse[T](s: String)(implicit parser: Parser[T]): ParseResult[T] = {
-    val cells = s.split(",").toSeq
-    parser(cells)
+  def parse[T](s: String)(implicit parser: Parser[T]): Seq[ParseResult[T]] = {
+    val lines = s.split("\n").toSeq
+    lines.map { line =>
+      val cells = line.split(",").toSeq
+      parser(cells)
+    }
   }
 
   def instance[T](s: Int)(p: Seq[String] => ParseResult[T]): Parser[T] = new Parser[T] {
