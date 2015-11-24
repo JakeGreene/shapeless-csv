@@ -24,13 +24,13 @@ val jakes = CsvParser.parse[Person](csv)
  */
 println(jakes) 
 
-val runtimeCheck = Parser.parse[Person]("Jake Greene,26,true,Madeup St.")
+val runtimeCheck = CsvParser.parse[Person]("Jake Greene,26,true,Madeup St.")
 // List(Left(Cannot parse [true] to Int))
 println(runtimeCheck) 
 
 trait Invalid
-/* <console>:17: error: could not find implicit value for parameter parser: ca.jakegreene.csv.Parser[Invalid]
- *     val compiletimeCheck = Parser.parse[Invalid]("Jake Greene,26,0,Madeup St.")
+/* <console>:17: error: could not find implicit value for parameter parser: ca.jakegreene.csv.CsvParser[Invalid]
+ *     val compiletimeCheck = CsvParser.parse[Invalid]("Jake Greene,26,0,Madeup St.")
  */
-val compiletimeCheck = Parser.parse[Invalid]("Jake Greene,26,0,Madeup St.")
+val compiletimeCheck = CsvParser.parse[Invalid]("Jake Greene,26,0,Madeup St.")
 ```
