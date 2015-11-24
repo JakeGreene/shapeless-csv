@@ -3,16 +3,16 @@ package ca.jakegreene.csv
 import scala.util.Try
 import shapeless._
 
-trait Parser[T] {
-  def apply(cells: Seq[String]): Parser.ParseResult[T]
+trait CsvParser[T] {
+  def apply(cells: Seq[String]): CsvParser.ParseResult[T]
   def size: Int
 }
 
-object Parser {
+object CsvParser {
 
   type ParseResult[T] = Either[String, T]
 
-  def parse[T](s: String)(implicit parser: Parser[T]): Seq[ParseResult[T]] = {
+  def parse[T](s: String)(implicit parser: CsvParser[T]): Seq[ParseResult[T]] = {
     val lines = s.split("\n").toSeq
     lines.map { line =>
       val cells = line.split(",").toSeq
@@ -20,7 +20,7 @@ object Parser {
     }
   }
 
-  def instance[T](s: Int)(p: Seq[String] => ParseResult[T]): Parser[T] = new Parser[T] {
+  def instance[T](s: Int)(p: Seq[String] => ParseResult[T]): CsvParser[T] = new CsvParser[T] {
     def apply(cells: Seq[String]): ParseResult[T] = {
       if (cells.length == s) {
         p(cells)
@@ -31,7 +31,7 @@ object Parser {
     def size = s
   }
 
-  def headInstance[T](p: String => Option[T])(failure: String => String): Parser[T] = new Parser[T] {
+  def headInstance[T](p: String => Option[T])(failure: String => String): CsvParser[T] = new CsvParser[T] {
     def apply(cells: Seq[String]): ParseResult[T] = {
       cells match {
         case head +: Nil =>
@@ -51,12 +51,9 @@ object Parser {
    *  Currently accepts anything. This is due to the situation where an inner case class is not
    *  the last param of an outer case class.
    */
-  implicit val hnilParser: Parser[HNil] = instance(0)(s => Right((HNil)))
+  implicit val hnilParser: CsvParser[HNil] = instance(0)(s => Right((HNil)))
 
-  // CSV regex
-  private[this] val NextCell = "^([^,]+)(?:,(.+))?$".r
-
-  implicit def hconsParser[Head, Tail <: HList](implicit hp: Lazy[Parser[Head]], tp: Lazy[Parser[Tail]]): Parser[Head :: Tail] = {
+  implicit def hconsParser[Head, Tail <: HList](implicit hp: Lazy[CsvParser[Head]], tp: Lazy[CsvParser[Tail]]): CsvParser[Head :: Tail] = {
     instance(hp.value.size + tp.value.size) { cells =>
       // Compiler bug SI-7222 prevents this from being a for-comprehension
       val (headCells, tailCells) = cells.splitAt(hp.value.size)
@@ -71,7 +68,7 @@ object Parser {
   /**
    * A parser for a case class that has a parser for it's HList representation
    */
-  implicit def caseClassParser[Case, Repr <: HList](implicit gen: Generic.Aux[Case, Repr], reprParser: Lazy[Parser[Repr]]): Parser[Case] = {
+  implicit def caseClassParser[Case, Repr <: HList](implicit gen: Generic.Aux[Case, Repr], reprParser: Lazy[CsvParser[Repr]]): CsvParser[Case] = {
     instance(reprParser.value.size) { cells =>
       reprParser.value(cells).right.map { parsed =>
         (gen.from(parsed))
