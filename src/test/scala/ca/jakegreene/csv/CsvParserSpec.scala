@@ -8,8 +8,8 @@ import scala.util.Try
 trait Invalid
 case class Test(s: String, i: Int, d: Double)
 
-class ParserSpec extends WordSpec with Matchers with OptionValues {
-  "A Parser" should {
+class CsvParserSpec extends WordSpec with Matchers with OptionValues {
+  "A CsvParser" should {
     "parse a single CSV line into a case class" in {
       val parsedCaseClasses = CsvParser.parse[Test]("hello world,12345,3.14")
       parsedCaseClasses.size should equal (1)
@@ -23,14 +23,14 @@ class ParserSpec extends WordSpec with Matchers with OptionValues {
       val parsedCaseClasses = CsvParser.parse[Test]("hello world,12345")
       parsedCaseClasses.size should equal (1)
       val parsedCaseClass = parsedCaseClasses(0)
-      parsedCaseClass shouldBe a [Left[_, _]]
+      parsedCaseClass should equal (Left(s"Input size [2] does not match parser expected size [3]"))
     }
     
     "fail to parse case class when given too many arguments" in {
       val parsedCaseClasses = CsvParser.parse[Test]("hello world,12345,3.14,54321")
       parsedCaseClasses.size should equal (1)
       val parsedCaseClass = parsedCaseClasses(0)
-      parsedCaseClass shouldBe a [Left[_, _]]
+      parsedCaseClass should equal (Left(s"Input size [4] does not match parser expected size [3]"))
     }
     
     "fail to parse case class when given incorrect types" in {
@@ -41,7 +41,7 @@ class ParserSpec extends WordSpec with Matchers with OptionValues {
     }
     
     "fail to compile when given invalid type" in {
-      """val parsedCaseClass = Parser.parse[Invalid]("hello world")""" shouldNot compile
+      """val parsedCaseClass = CsvParser.parse[Invalid]("hello world")""" shouldNot compile
     }
     
     "parse multiple lines of Bytes" in {

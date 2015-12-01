@@ -5,45 +5,42 @@ import shapeless._
 import shapeless.ops.hlist._
 
 trait CsvParser[T] {
-  def apply(cells: Seq[String]): CsvParser.ParseResult[T] = parse(cells)
-  def parse(cells: Seq[String]): CsvParser.ParseResult[T]
+  import CsvParser.{Cell, ParseResult}
+  def apply(cells: Seq[Cell]): ParseResult[T] = parse(cells)
+  def parse(cells: Seq[Cell]): ParseResult[T]
+  /**
+   * The number of `Cell`s this `CsvParser` needs to consume to produce a `T`
+   */
   def size: Int
 }
 
 object CsvParser {
 
+  type Cell = String
   type ParseResult[T] = Either[String, T]
 
-  def parse[T](s: String)(implicit parser: CsvParser[T]): Seq[ParseResult[T]] = {
-    val lines = s.split("\n").toList
+  /**
+   * Attempt to parse the CSV string `csv` into a `Seq[T]`
+   * 
+   * Example usage:
+   * {{{
+   * // Produces Right(3)
+   * CsvParser.parse[Int]("3")
+   * 
+   * case class Sample(i: Int)
+   * // Produces Right(Sample(3))
+   * CsvParser.parse[Sample]("3")
+   * }}}
+   * 
+   * @param csv A string representation of a CSV. Each cell must be divided by a comma and each line must be separated by a newline
+   * @param parser The `CsvParser` which can parse a CSV line into an instance of `T`
+   */
+  def parse[T](csv: String)(implicit parser: CsvParser[T]): Seq[ParseResult[T]] = {
+    val lines = csv.split("\n").toList
     lines.map { line =>
       val cells = line.split(",").toList
       parser(cells)
     }
-  }
-
-  def instance[T](s: Int)(p: Seq[String] => ParseResult[T]): CsvParser[T] = new CsvParser[T] {
-    def parse(cells: Seq[String]): ParseResult[T] = {
-      if (cells.length == s) {
-        p(cells)
-      } else {
-        Left(s"Input size [${cells.length}] does not match parser expected size [$s]")
-      }
-    }
-    def size = s
-  }
-
-  def headInstance[T](p: String => Option[T])(failure: String => String): CsvParser[T] = new CsvParser[T] {
-    def parse(cells: Seq[String]): ParseResult[T] = {
-      cells match {
-        case head +: Nil =>
-          val maybeParsed = p(head)
-          maybeParsed.toRight(failure(head))
-        case _ =>
-          Left(failure(cells.mkString(",")))
-      }
-    }
-    def size = 1
   }
 
   implicit val stringParser = primitiveParser(identity)
@@ -59,34 +56,76 @@ object CsvParser {
   implicit val doubleParser = primitiveParser(_.toDouble)
   implicit val booleanParser = primitiveParser(_.toBoolean)
 
-  def primitiveParser[P](parse: String => P)(implicit typ: Typeable[P]): CsvParser[P] = {
+  /**
+   * Create a `CsvParser` that consumes one cell and attempts to produce a primitive of type `P`
+   * @param parse The function to parse a `Cell` into `P`
+   * @param typ The typeclass used to find type information for `P`
+   */
+  def primitiveParser[P](parse: Cell => P)(implicit typ: Typeable[P]): CsvParser[P] = {
     headInstance(s => Try(parse(s)).toOption)(s => s"Cannot parse [$s] to ${typ.describe}")
-  } 
+  }
+  
+  /**
+   * Create a `CsvParser` that consumes a single cell and parses it into an instance of `T`
+   * @param p The function that attempts to parse a cell into an instance of `T`
+   * @param failure The function used to create an error method. The input to the method
+   * will be the cell(s) that could not be parsed.
+   */
+  def headInstance[T](p: Cell => Option[T])(failure: String => String): CsvParser[T] = new CsvParser[T] {
+    def parse(cells: Seq[Cell]): ParseResult[T] = {
+      cells match {
+        case head +: Nil =>
+          val maybeParsed = p(head)
+          maybeParsed.toRight(failure(head))
+        case _ =>
+          Left(failure(cells.mkString(",")))
+      }
+    }
+    def size = 1
+  }
+  
+  /**
+   * Create a `CsvParser` that consumes `s` number of cells and attempts to produce an instance of `T`
+   */
+  def instance[T](s: Int)(p: Seq[Cell] => ParseResult[T]): CsvParser[T] = new CsvParser[T] {
+    def parse(cells: Seq[Cell]): ParseResult[T] = {
+      if (cells.length == s) {
+        p(cells)
+      } else {
+        Left(s"Input size [${cells.length}] does not match parser expected size [$s]")
+      }
+    }
+    def size = s
+  }
 
   /*
+   * Recursively create a parser for an HList.
+   * 
    * Base Case: given an empty sequence of cells, produce an HNil
    */
   implicit val hnilParser: CsvParser[HNil] = instance(0)(s => Right((HNil)))
 
   /*
+   * Recursively create a parser for an HList.
+   * 
    * Inductive Step: given a sequence of cells, parse the front cells into `Head` and the sequence of remaining cells into `Tail`.
    * `Head` is not limited to one cell; `Head` may be a class requiring multiple cells.
    *
    */
-  implicit def hconsParser[Head, Tail <: HList](implicit hp: Lazy[CsvParser[Head]], tp: Lazy[CsvParser[Tail]]): CsvParser[Head :: Tail] = {
-    instance(hp.value.size + tp.value.size) { cells =>
-      // Compiler bug SI-7222 prevents this from being a for-comprehension
-      val (headCells, tailCells) = cells.splitAt(hp.value.size)
-      hp.value.parse(headCells).right.flatMap { case (head) =>
-        tp.value.parse(tailCells).right.map { case (tail) =>
-          (head :: tail)
-        }
-      }
+  implicit def hconsParser[Head, Tail <: HList](implicit hParser: Lazy[CsvParser[Head]], tParser: Lazy[CsvParser[Tail]]): CsvParser[Head :: Tail] = {
+    instance(hParser.value.size + tParser.value.size) { cells =>
+      val (headCells, tailCells) = cells.splitAt(hParser.value.size)
+      for {
+        head <- hParser.value.parse(headCells).right
+        tail <- tParser.value.parse(tailCells).right
+      } yield head :: tail
     }
   }
 
-  /**
-   * A parser for a case class that has a parser for it's HList representation
+  /*
+   * Create a `CsvParser` for a case class of type `Case`. The parser requires that we can safely convert an HList `Repr` into a `Case`
+   * @param gen The Generic allowing to convert from a `Repr` HList to a `Case` case class
+   * @param reprParser The `CsvParser` that can parse a CSV line into an HList of type `Repr`
    */
   implicit def caseClassParser[Case, Repr <: HList](implicit gen: Generic.Aux[Case, Repr], reprParser: Lazy[CsvParser[Repr]]): CsvParser[Case] = {
     instance(reprParser.value.size) { cells =>
