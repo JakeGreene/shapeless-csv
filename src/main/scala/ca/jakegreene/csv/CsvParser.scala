@@ -33,15 +33,19 @@ object CsvParser {
    * }}}
    * 
    * @param csv A string representation of a CSV. Each cell must be divided by a comma and each line must be separated by a newline
+   * @param hasHeader Does `csv` have a header? Defaults to false (i.e. no)
    * @param parser The `CsvParser` which can parse a CSV line into an instance of `T`
    */
-  def parse[T](csv: String)(implicit parser: CsvParser[T]): Seq[ParseResult[T]] = {
-    val lines = csv.split("\n").toList
-    lines.map { line =>
+  def parse[T](csv: String, hasHeader: Boolean = false)(implicit parser: CsvParser[T]): Seq[ParseResult[T]] = {
+    val allLines = csv.split("\n").toList
+    val usableLines = if (hasHeader) allLines.drop(1) else allLines
+    usableLines.map { line =>
       val cells = line.split(",").toList
       parser(cells)
     }
   }
+
+  def parseSkipHeader[T](csv: String)(implicit parser: CsvParser[T]): Seq[ParseResult[T]] = parse(csv, true)
 
   implicit val stringParser = primitiveParser(identity)
   implicit val charParser = primitiveParser { s =>

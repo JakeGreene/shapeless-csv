@@ -197,5 +197,17 @@ class CsvParserSpec extends WordSpec with Matchers with OptionValues {
       val parsedHolder = parsedHolders(0)
       parsedHolder should equal (Right(Holder(4, Test("hello world", 54321, 3.14), 3)))
     }
+    
+    "ignore header if given hasHeader = true" in {
+      case class Test(a: String, b: Int)
+      val parsedTests = CsvParser.parse[Test]("name,age\nwaldo,28", hasHeader = true)
+      parsedTests should contain only (Right(Test("waldo", 28)))
+    }
+    
+    "ignore headers if explicitly told to" in {
+      case class Test(a: String, b: Int)
+      val parsedTests = CsvParser.parseSkipHeader[Test]("name,age\nwaldo,28")
+      parsedTests should contain only (Right(Test("waldo", 28)))
+    }
   }
 }
